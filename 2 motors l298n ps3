@@ -1,0 +1,92 @@
+#include <Ps3Controller.h>
+
+// Motor pins for L293D Motor Shield
+#define MOTOR1_IN1 5  // Motor 1 forward pin
+#define MOTOR1_IN2 18 // Motor 1 backward pin
+#define MOTOR2_IN1 19 // Motor 2 forward pin
+#define MOTOR2_IN2 21 // Motor 2 backward pin
+
+
+// PWM pins for motor speed control
+#define MOTOR1_EN 4  // Motor 1 speed control
+#define MOTOR2_EN 12 // Motor 2 speed control
+
+// Joystick values
+int leftX, leftY, rightX, rightY;
+
+// Callback function to process PS3 controller inputs
+void notify() {
+  // Get joystick values
+  leftX = Ps3.data.analog.stick.lx;
+  leftY = Ps3.data.analog.stick.ly;
+  rightX = Ps3.data.analog.stick.rx;
+  rightY = Ps3.data.analog.stick.ry;
+
+  // Control motors with left joystick
+  controlMotor(MOTOR1_IN1, MOTOR1_IN2, MOTOR1_EN, leftY); // Motor 1
+  controlMotor(MOTOR2_IN1, MOTOR2_IN2, MOTOR2_EN, leftX); // Motor 2
+
+
+
+  // Debugging output
+  Serial.print("LeftX: ");
+  Serial.print(leftX);
+  Serial.print(", LeftY: ");
+  Serial.print(leftY);
+  Serial.print(", RightX: ");
+  Serial.print(rightX);
+  Serial.print(", RightY: ");
+  Serial.println(rightY);
+}
+
+// Function to control individual motors
+void controlMotor(int motorPin1, int motorPin2, int motorEN, int speed) {
+  if (speed > 10) { // Move forward
+    digitalWrite(motorPin1, HIGH);
+    digitalWrite(motorPin2, LOW);
+    analogWrite(motorEN, map(speed, 0, 128, 0, 255));
+  } else if (speed < -10) { // Move backward
+    digitalWrite(motorPin1, LOW);
+    digitalWrite(motorPin2, HIGH);
+    analogWrite(motorEN, map(abs(speed), 0, 128, 0, 255));
+  } else { // Stop the motor
+    digitalWrite(motorPin1, LOW);
+    digitalWrite(motorPin2, LOW);
+    analogWrite(motorEN, 0);
+  }
+}
+
+// On Connection function
+void onConnect() {
+  Serial.println("Controller Connected.");
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  // Initialize motor pins as outputs
+  pinMode(MOTOR1_IN1, OUTPUT);
+  pinMode(MOTOR1_IN2, OUTPUT);
+  pinMode(MOTOR2_IN1, OUTPUT);
+  pinMode(MOTOR2_IN2, OUTPUT);
+
+  // Initialize PWM pins for speed control
+  pinMode(MOTOR1_EN, OUTPUT);
+  pinMode(MOTOR2_EN, OUTPUT);
+
+  // Attach the notify function to the PS3 controller
+  Ps3.attach(notify);
+  Ps3.attachOnConnect(onConnect);
+  
+  // Start PS3 controller communication with a given MAC address
+  Ps3.begin("00:00:00:00:00:0a");
+
+  Serial.println("Ready.");
+}
+
+void loop() {
+  if (!Ps3.isConnected()) {
+    return;
+  }
+  delay(100);
+}
